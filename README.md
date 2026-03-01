@@ -1,35 +1,35 @@
 ```mermaid
 graph TD
 
-subgraph Presentation [Presentation (SwiftUI)]
-    RootView --> Flows
-    Flows --> ViewModels
+subgraph Presentation
+  RootView --> Flows
+  Flows --> ViewModels
 end
 
 subgraph Domain
-    UseCases
-    Entities
-    DomainEventBus
+  UseCases
+  Entities
+  DomainEventBus
 end
 
 subgraph Data
-    Repositories
-    Mappers
-    DTOs
-    TokenStore
+  Repositories
+  Mappers
+  DTOs
+  TokenStore
 end
 
 subgraph Networking
-    HTTPClient
-    RequestBuilder
-    AuthInterceptor
-    NetworkLoggerInterceptor
+  HTTPClient
+  RequestBuilder
+  AuthInterceptor
+  NetworkLoggerInterceptor
 end
 
-subgraph ExternalServices [External Services]
-    CoreService[Core Service]
-    InfoService[Info Service]
-    CreditService[Credit Service]
+subgraph External_Services
+  CoreService[Core Service]
+  InfoService[Info Service]
+  CreditService[Credit Service]
 end
 
 ViewModels --> UseCases
