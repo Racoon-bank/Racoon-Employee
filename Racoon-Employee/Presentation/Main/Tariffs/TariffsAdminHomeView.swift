@@ -60,7 +60,7 @@ struct TariffsAdminHomeView: View {
                 Task {
                     await viewModel.create(
                         name: input.name,
-                        interestRate: input.interestRate,
+                        interestRate: input.interestRate*100,
                         dueDate: input.dueDate,
                         isActive: input.isActive
                     )

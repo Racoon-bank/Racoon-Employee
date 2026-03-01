@@ -9,23 +9,44 @@
 import Combine
 import Foundation
 
+import Foundation
+
 @MainActor
 final class AccountHistoryViewModel: ObservableObject {
     @Published private(set) var state: AsyncViewState = .idle
     @Published private(set) var operations: [BankOperation] = []
 
-    private let accountId: UUID
-    private let getHistory: GetAccountHistoryUseCase
+    @Published private(set) var user: User?
 
-    init(accountId: UUID, getHistory: GetAccountHistoryUseCase) {
+    private let accountId: UUID
+    private let userId: UUID
+
+    private let getHistory: GetAccountHistoryUseCase
+    private let getAllUsers: GetAllUsersUseCase
+
+    init(
+        accountId: UUID,
+        userId: UUID,
+        getHistory: GetAccountHistoryUseCase,
+        getAllUsers: GetAllUsersUseCase
+    ) {
         self.accountId = accountId
+        self.userId = userId
         self.getHistory = getHistory
+        self.getAllUsers = getAllUsers
     }
 
     func load() async {
         state = .loading
         do {
-            operations = try await getHistory(accountId: accountId)
+            async let opsTask: [BankOperation] = getHistory(accountId: accountId)
+            async let usersTask: [User] = getAllUsers()
+
+            let (ops, users) = try await (opsTask, usersTask)
+
+            self.operations = ops
+            self.user = users.first(where: { $0.id == userId })
+
             state = .idle
         } catch {
             state = .error(message: "Failed to load history.")
@@ -34,7 +55,13 @@ final class AccountHistoryViewModel: ObservableObject {
 
     func refresh() async {
         do {
-            operations = try await getHistory(accountId: accountId)
+            async let opsTask: [BankOperation] = getHistory(accountId: accountId)
+            async let usersTask: [User] = getAllUsers()
+
+            let (ops, users) = try await (opsTask, usersTask)
+
+            self.operations = ops
+            self.user = users.first(where: { $0.id == userId })
         } catch {
             state = .error(message: "Failed to refresh.")
         }

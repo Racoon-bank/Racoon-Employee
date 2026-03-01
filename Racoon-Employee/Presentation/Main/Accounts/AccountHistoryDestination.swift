@@ -14,7 +14,7 @@ struct AccountHistoryDestination: View {
     var body: some View {
         let factory = ViewModelFactory(container: container)
         AccountHistoryView(
-            viewModel: factory.makeAccountHistoryViewModel(accountId: account.id),
+            viewModel: factory.makeAccountHistoryViewModel(account: account),
             account: account
         )
     }

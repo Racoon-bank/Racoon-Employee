@@ -52,7 +52,7 @@ final class TariffsAdminHomeViewModel: ObservableObject {
     func create(name: String, interestRate: Decimal, dueDate: Date, isActive: Bool) async {
         state = .loading
         do {
-            _ = try await createTariff(name: name, interestRate: interestRate, dueDate: dueDate, isActive: isActive)
+            _ = try await createTariff(name: name, interestRate: interestRate/100, dueDate: dueDate, isActive: isActive)
             tariffs = try await getTariffs()
             state = .idle
         } catch {

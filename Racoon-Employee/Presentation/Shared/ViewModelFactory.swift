@@ -19,11 +19,16 @@ import Foundation
 
     // MARK: - Admin
        func makeAccountsAdminHomeViewModel() -> AccountsAdminHomeViewModel {
-         AccountsAdminHomeViewModel(getAllAccounts: container.getAllAccountsUseCase)
+           AccountsAdminHomeViewModel(getAllAccounts: container.getAllAccountsUseCase, getAllUsers: container.getAllUsersUseCase)
      }
 
-      func makeAccountHistoryViewModel(accountId: UUID) -> AccountHistoryViewModel {
-         AccountHistoryViewModel(accountId: accountId, getHistory: container.getAccountHistoryUseCase)
+     func makeAccountHistoryViewModel(account: BankAccount) -> AccountHistoryViewModel {
+         AccountHistoryViewModel(
+             accountId: account.id,
+             userId: account.userId,
+             getHistory: container.getAccountHistoryUseCase,
+             getAllUsers: container.getAllUsersUseCase
+         )
      }
      public func makeCreditsAdminHomeViewModel() -> CreditsAdminHomeViewModel {
          CreditsAdminHomeViewModel(getAllCredits: container.getAllCreditsUseCase)
