@@ -20,9 +20,23 @@ struct AccountHistoryView: View {
     var body: some View {
         List {
             Section("Account") {
-                LabeledContent("Number", value: account.accountNumber ?? "Error")
+                LabeledContent("Number", value: account.accountNumber ?? "—")
                 LabeledContent("Balance", value: MoneyFormatter.shared.string(from: account.balance))
-                LabeledContent("User", value: account.userId.uuidString)
+            }
+
+            Section("Owner") {
+                if let user = viewModel.user {
+                    LabeledContent("Name", value: user.username)
+                    if let email = user.email, !email.isEmpty {
+                        LabeledContent("Email", value: email)
+                    }
+                    LabeledContent("User ID", value: user.id.uuidString)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                } else {
+                    Text("User info is unavailable.")
+                        .foregroundStyle(.secondary)
+                }
             }
 
             Section("History") {
@@ -31,7 +45,7 @@ struct AccountHistoryView: View {
                         .foregroundStyle(.secondary)
                 } else {
                     ForEach(viewModel.operations) { op in
-                        OperationRow(op: op)
+                        AccountOperationRow(op: op)
                     }
                 }
             }
@@ -55,23 +69,4 @@ struct AccountHistoryView: View {
     }
 }
 
-private struct OperationRow: View {
-    let op: BankOperation
 
-    var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack {
-                Text(op.type.title)
-                    .font(.headline)
-                Spacer()
-                Text(MoneyFormatter.shared.string(from: op.amount))
-                    .monospacedDigit()
-                    .foregroundStyle(op.type.isNegative ? .red : .primary)
-            }
-            Text(op.createdAt.formatted(date: .abbreviated, time: .shortened))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-        }
-        .padding(.vertical, 6)
-    }
-}

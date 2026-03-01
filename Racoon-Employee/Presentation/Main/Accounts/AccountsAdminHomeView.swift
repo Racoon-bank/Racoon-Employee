@@ -8,6 +8,8 @@
 
 import SwiftUI
 
+import SwiftUI
+
 struct AccountsAdminHomeView: View {
     @StateObject private var viewModel: AccountsAdminHomeViewModel
 
@@ -25,14 +27,18 @@ struct AccountsAdminHomeView: View {
                         NavigationLink {
                             AccountHistoryDestination(account: a)
                         } label: {
-                            AccountRow(account: a)
+                            AccountRow(
+                                account: a,
+                                userTitle: viewModel.userName(for: a.userId),
+                                userSubtitle: viewModel.userSubtitle(for: a.userId)
+                            )
                         }
                     }
                 }
             }
         }
         .navigationTitle("Accounts")
-        .searchable(text: $viewModel.searchText, prompt: "Account number or user id")
+        .searchable(text: $viewModel.searchText, prompt: "Account number or user name")
         .task { await viewModel.load() }
         .refreshable { await viewModel.refresh() }
         .toolbar {
@@ -61,31 +67,4 @@ struct AccountsAdminHomeView: View {
     }
 }
 
-private struct AccountRow: View {
-    let account: BankAccount
 
-    var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack {
-                Text(account.accountNumber ?? "Error")
-                    .font(.headline)
-                    .lineLimit(1)
-                Spacer()
-                Text(MoneyFormatter.shared.string(from: account.balance))
-                    .monospacedDigit()
-                    .foregroundStyle(account.balance < 0 ? .red : .primary)
-            }
-
-            HStack(spacing: 8) {
-                Text("User: \(account.userId.uuidString.prefix(8))…")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                Spacer()
-                Text(account.createdAt.formatted(date: .abbreviated, time: .omitted))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-        }
-        .padding(.vertical, 6)
-    }
-}
