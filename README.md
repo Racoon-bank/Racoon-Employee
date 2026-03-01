@@ -1,56 +1,51 @@
-# Racoon-Employee
-<pre>
-```plantuml
-@startuml
+```mermaid
+graph TD
 
-package "Presentation (SwiftUI)" {
-  [RootView] --> [Flows]
-  [Flows] --> [ViewModels]
-}
+subgraph Presentation [Presentation (SwiftUI)]
+    RootView --> Flows
+    Flows --> ViewModels
+end
 
-package "Domain" {
-  interface "UseCases" as UC
-  [Entities]
-  [DomainEventBus]
-}
+subgraph Domain
+    UseCases
+    Entities
+    DomainEventBus
+end
 
-package "Data" {
-  interface "Repositories" as REPO
-  [Mappers]
-  [DTOs]
-  [TokenStore]
-}
+subgraph Data
+    Repositories
+    Mappers
+    DTOs
+    TokenStore
+end
 
-package "Networking" {
-  [HTTPClient]
-  [RequestBuilder]
-  [AuthInterceptor]
-  [NetworkLoggerInterceptor]
-}
+subgraph Networking
+    HTTPClient
+    RequestBuilder
+    AuthInterceptor
+    NetworkLoggerInterceptor
+end
 
-package "External Services" {
-  [Core Service]
-  [Info Service]
-  [Credit Service]
-}
+subgraph ExternalServices [External Services]
+    CoreService[Core Service]
+    InfoService[Info Service]
+    CreditService[Credit Service]
+end
 
-[ViewModels] --> UC
-UC --> REPO
-UC --> [DomainEventBus]
+ViewModels --> UseCases
+UseCases --> Repositories
+UseCases --> DomainEventBus
 
-REPO --> [HTTPClient]
-REPO --> [Mappers]
-[Mappers] --> [DTOs]
+Repositories --> HTTPClient
+Repositories --> Mappers
+Mappers --> DTOs
 
-[HTTPClient] --> [RequestBuilder]
-[HTTPClient] --> [AuthInterceptor]
-[HTTPClient] --> [NetworkLoggerInterceptor]
-[AuthInterceptor] --> [TokenStore]
+HTTPClient --> RequestBuilder
+HTTPClient --> AuthInterceptor
+HTTPClient --> NetworkLoggerInterceptor
+AuthInterceptor --> TokenStore
 
-[RequestBuilder] --> [Core Service]
-[RequestBuilder] --> [Info Service]
-[RequestBuilder] --> [Credit Service]
-
-@enduml
+RequestBuilder --> CoreService
+RequestBuilder --> InfoService
+RequestBuilder --> CreditService
 ```
-</pre>
