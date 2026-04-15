@@ -13,10 +13,13 @@ public protocol GetAllAccountsUseCase: Sendable {
 public struct GetAllAccountsUseCaseImpl: GetAllAccountsUseCase {
     private let repo: EmployeeAccountsRepository
 
-    public init(repo: EmployeeAccountsRepository) { self.repo = repo }
+    public init(repo: EmployeeAccountsRepository) {
+        self.repo = repo
+    }
 
     public func callAsFunction() async throws -> [BankAccount] {
         let dtos = try await repo.allAccounts()
-        return dtos.map(BankAccountMapper.toDomain)
+        
+        return dtos.map { BankAccountMapper.toDomain($0, hiddenAccountIds: []) }
     }
 }

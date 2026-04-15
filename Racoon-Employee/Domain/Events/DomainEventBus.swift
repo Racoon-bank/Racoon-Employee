@@ -8,4 +8,5 @@
 
 public protocol DomainEventBus: Sendable {
     func publish(_ event: DomainEvent) async
+    var events: AsyncStream<DomainEvent> { get }
 }

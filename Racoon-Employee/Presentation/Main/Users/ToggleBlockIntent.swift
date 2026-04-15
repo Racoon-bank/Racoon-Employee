@@ -9,9 +9,9 @@
 import SwiftUI
 import Foundation
 
-struct ToggleBlockIntent: Identifiable, Sendable {
-    let id = UUID()
-    let userId: UUID
-    let newBlockedValue: Bool
-    let username: String
-}
+//struct ToggleBlockIntent: Identifiable, Sendable {
+//    let id = UUID()
+//    let userId: UUID
+//    let newBlockedValue: Bool
+//    let username: String
+//}

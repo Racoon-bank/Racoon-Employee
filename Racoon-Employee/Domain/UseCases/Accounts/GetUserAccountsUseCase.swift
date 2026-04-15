@@ -17,6 +17,6 @@ public struct GetUserAccountsUseCaseImpl: GetUserAccountsUseCase {
 
     public func callAsFunction(userId: UUID) async throws -> [BankAccount] {
         let dtos = try await repo.accounts(for: userId)
-        return dtos.map(BankAccountMapper.toDomain)
+        return dtos.map { BankAccountMapper.toDomain($0, hiddenAccountIds: []) }
     }
 }

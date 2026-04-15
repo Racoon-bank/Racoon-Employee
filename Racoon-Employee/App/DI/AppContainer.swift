@@ -20,6 +20,10 @@ public final class AppContainer: @unchecked Sendable {
     public let bareHTTP: HTTPClient
     public let authedHTTP: HTTPClient
     public let eventBus: DomainEventBus
+    public let appSettingsStorage: AppSettingsStorage
+    public let appSettingsStore: AppSettingsStore
+    
+    public let appErrorBus: AppErrorBus
 
     // MARK: - Repositories
     public let authRepository: any EmployeeAuthRepository
@@ -29,6 +33,7 @@ public final class AppContainer: @unchecked Sendable {
     public let accountsRepository: EmployeeAccountsRepository
     public let creditsRepository: EmployeeCreditsRepository
     public let tariffsRepository: EmployeeTariffsRepository
+    public let appRepository: AppRepository
 
     // MARK: - Use cases
     public let loginUseCase: EmployeeLoginUseCase
@@ -48,39 +53,55 @@ public final class AppContainer: @unchecked Sendable {
     public let getCreditStatisticsUseCase: GetCreditStatisticsUseCase
     public let getCreditScheduleUseCase: GetCreditScheduleUseCase
     public let getCreditPaymentsUseCase: GetCreditPaymentsUseCase
+    
+    public let connectBankHubUseCase: ConnectBankHubUseCase
+    public let disconnectBankHubUseCase: DisconnectBankHubUseCase
+    public let subscribeToAccountUseCase: SubscribeToAccountUseCase
+    public let unsubscribeFromAccountUseCase: UnsubscribeFromAccountUseCase
 
     public let getTariffsUseCase: GetTariffsUseCase
     public let createTariffUseCase: CreateTariffUseCase
     public let deleteTariffUseCase: DeleteTariffUseCase
+    public let completeSSOUseCase : CompleteSSOLoginUseCase
+    public let setThemeUseCase: SetThemeUseCase
+    public let syncThemeFromProfileUseCase: SyncThemeFromProfileUseCase
+    
+    public let bankHubClient: BankHubClient
 
     private init() {
         self.env = NetworkEnvironment.fromBuildConfig()
         self.networkingAssembly = NetworkingAssembly(env: env)
+        self.eventBus = InMemoryDomainEventBus()
+        self.appErrorBus = InMemoryAppErrorBus()
         self.repositoriesAssembly = RepositoriesAssembly(networking: networkingAssembly)
-
-        // Networking primitives
+        
         self.tokenStore = networkingAssembly.makeTokenStore()
         self.bareHTTP = networkingAssembly.makeBareHTTPClient()
-
-        // Auth repo must be created BEFORE authed client (for refresh)
+        self.appSettingsStorage = UserDefaultsAppSettingsStorage()
+        self.bankHubClient = BankHubClient(env: env, tokenStore: tokenStore, eventBus: eventBus)
+        
+        
         let authLive = repositoriesAssembly.makeEmployeeAuthRepository(
             bareClient: bareHTTP,
             tokenStore: tokenStore
         )
         self.authRepository = authLive
         self.tokenRefresher = authLive
-        self.eventBus = InMemoryDomainEventBus()
-
+        
+        
         self.authedHTTP = networkingAssembly.makeAuthedHTTPClient(
             tokenStore: tokenStore,
-            tokenRefresher: tokenRefresher
+            tokenRefresher: tokenRefresher,
+            appErrorBus: appErrorBus
         )
-
-        // Repos (authed)
+        
+        
         self.usersRepository = repositoriesAssembly.makeEmployeeUsersRepository(authedClient: authedHTTP)
         self.accountsRepository = repositoriesAssembly.makeEmployeeAccountsRepository(authedClient: authedHTTP)
         self.creditsRepository = repositoriesAssembly.makeEmployeeCreditsRepository(authedClient: authedHTTP)
         self.tariffsRepository = repositoriesAssembly.makeEmployeeTariffsRepository(authedClient: authedHTTP)
+        self.appRepository = AppRepositoryLive(client: authedHTTP)
+        
         
         let useCases = UseCasesAssembly(
             authRepo: authRepository,
@@ -89,34 +110,56 @@ public final class AppContainer: @unchecked Sendable {
             creditsRepo: creditsRepository,
             tariffsRepo: tariffsRepository,
             tokenStore: tokenStore,
-            events: eventBus
+            events: eventBus,
+            bankHubClient: bankHubClient
         )
-
+        
         // Auth
         self.loginUseCase = useCases.makeLoginUseCase()
         self.logoutUseCase = useCases.makeLogoutUseCase()
-
+        
         // Users
         self.getAllUsersUseCase = useCases.makeGetAllUsersUseCase()
         self.createUserUseCase = useCases.makeCreateUserUseCase()
         self.createEmployeeUseCase = useCases.makeCreateEmployeeUseCase()
         self.banUserUseCase = useCases.makeBanUserUseCase()
-
+        
         // Accounts
         self.getAllAccountsUseCase = useCases.makeGetAllAccountsUseCase()
         self.getUserAccountsUseCase = useCases.makeGetUserAccountsUseCase()
         self.getAccountHistoryUseCase = useCases.makeGetAccountHistoryUseCase()
-
+        
         // Credits
         self.getAllCreditsUseCase = useCases.makeGetAllCreditsUseCase()
         self.getCreditUseCase = useCases.makeGetCreditUseCase()
         self.getCreditStatisticsUseCase = useCases.makeGetCreditStatisticsUseCase()
         self.getCreditScheduleUseCase = useCases.makeGetCreditScheduleUseCase()
         self.getCreditPaymentsUseCase = useCases.makeGetCreditPaymentsUseCase()
-
+        
         // Tariffs
         self.getTariffsUseCase = useCases.makeGetTariffsUseCase()
         self.createTariffUseCase = useCases.makeCreateTariffUseCase()
         self.deleteTariffUseCase = useCases.makeDeleteTariffUseCase()
+        self.completeSSOUseCase = CompleteSSOLoginUseCaseImpl(tokenStore: tokenStore, events: eventBus)
+        self.setThemeUseCase = SetThemeUseCaseImpl(
+            appRepo: self.appRepository,
+            storage: appSettingsStorage,
+            events: eventBus
+        )
+        
+        self.syncThemeFromProfileUseCase = SyncThemeFromProfileUseCaseImpl(
+            appRepo: self.appRepository,
+            storage: appSettingsStorage,
+            events: eventBus
+        )
+        
+        
+        self.appSettingsStore = AppSettingsStore(storage: appSettingsStorage , syncTheme: syncThemeFromProfileUseCase, eventBus: eventBus)
+        
+        
+        self.connectBankHubUseCase = useCases.makeConnectBankHubUseCase()
+        self.disconnectBankHubUseCase = useCases.makeDisconnectBankHubUseCase()
+        self.subscribeToAccountUseCase = useCases.makeSubscribeToAccountUseCase()
+        self.unsubscribeFromAccountUseCase = useCases.makeUnsubscribeFromAccountUseCase()
     }
 }

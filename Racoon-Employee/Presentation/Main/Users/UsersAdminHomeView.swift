@@ -60,7 +60,27 @@ struct UsersAdminHomeView: View {
         .task { await viewModel.load() }
         .refreshable { await viewModel.refresh() }
         .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
+            ToolbarItemGroup(placement: .topBarTrailing) {
+                if viewModel.state.isLoading {
+                    ProgressView().controlSize(.small)
+                }
+                
+             
+                Button {
+                    let isCurrentlyDark = viewModel.currentTheme == .dark
+                    Task {
+                  
+                        withAnimation {
+                            viewModel.currentTheme = isCurrentlyDark ? .light : .dark
+                        }
+                        await viewModel.toggleTheme(isDark: !isCurrentlyDark)
+                    }
+                } label: {
+                    Image(systemName: viewModel.currentTheme == .dark ? "moon.fill" : "sun.max.fill")
+                        .foregroundStyle(.primary)
+                }
+                .disabled(viewModel.state.isLoading)
+
                 Menu {
                     Button {
                         viewModel.showCreateUserSheet = true
@@ -77,10 +97,6 @@ struct UsersAdminHomeView: View {
                     Image(systemName: "plus")
                 }
                 .disabled(viewModel.state.isLoading)
-            }
-
-            ToolbarItem(placement: .topBarTrailing) {
-                if viewModel.state.isLoading { ProgressView().controlSize(.small) }
             }
         }
         .sheet(isPresented: $viewModel.showCreateUserSheet) {
@@ -128,6 +144,10 @@ struct UsersAdminHomeView: View {
     }
 }
 
-
-
-
+private struct ToggleBlockIntent: Identifiable {
+    let userId: UUID
+    let newBlockedValue: Bool
+    let username: String
+    
+    var id: UUID { userId }
+}

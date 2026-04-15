@@ -14,17 +14,35 @@ struct AccountOperationRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
-                Text(op.type.title)
+                Text(operationTitle(for: op.type))
                     .font(.headline)
                 Spacer()
-                Text(MoneyFormatter.shared.string(from: op.amount))
+                Text(NSDecimalNumber(decimal: op.amount).stringValue)
                     .monospacedDigit()
-                    .foregroundStyle(op.type.isNegative ? .red : .primary)
+                    .foregroundStyle(amountColor(for: op.type))
             }
             Text(op.createdAt.formatted(date: .abbreviated, time: .shortened))
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
         .padding(.vertical, 6)
+    }
+    
+    private func operationTitle(for type: BankOperationType) -> String {
+        switch type {
+        case .deposit: return "Deposit"
+        case .withdraw: return "Withdraw"
+        case .creditIssued: return "Credit Issued"
+        case .creditPayment: return "Credit Payment"
+        case .unknown: return "Transfer / Unknown"
+        }
+    }
+    
+    private func amountColor(for type: BankOperationType) -> Color {
+        switch type {
+        case .deposit, .creditIssued: return .green
+        case .withdraw, .creditPayment: return .primary
+        case .unknown: return .primary
+        }
     }
 }

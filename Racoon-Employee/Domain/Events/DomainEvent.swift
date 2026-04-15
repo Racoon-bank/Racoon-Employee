@@ -11,7 +11,11 @@ public enum DomainEvent: Sendable {
     case userCreated(id: UUID)
     case userBanned(id: UUID)
     case employeeCreated(id: UUID)
+    case themeSwitched
 
+    case authLoggedIn
+    case authLoggedOut
     case tariffCreated(id: Int64)
     case tariffDeleted(id: Int64)
+    case accountUpdated(accountId: UUID)
 }

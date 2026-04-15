@@ -5,7 +5,6 @@
 //  Created by dark type on 01.03.2026.
 //
 
-
 import SwiftUI
 
 struct AccountHistoryView: View {
@@ -21,7 +20,8 @@ struct AccountHistoryView: View {
         List {
             Section("Account") {
                 LabeledContent("Number", value: account.accountNumber ?? "—")
-                LabeledContent("Balance", value: MoneyFormatter.shared.string(from: account.balance))
+                
+                LabeledContent("Balance", value: "\(MoneyFormatter.shared.string(from: viewModel.currentBalance ?? account.balance)) \(account.currency.symbol)")
             }
 
             Section("Owner") {
@@ -56,7 +56,10 @@ struct AccountHistoryView: View {
                 if viewModel.state.isLoading { ProgressView().controlSize(.small) }
             }
         }
-        .task { await viewModel.load() }
+        
+        .onAppear { Task { await viewModel.load() } }
+        
+        .task { await viewModel.observeEvents() }
         .refreshable { await viewModel.refresh() }
         .alert("Error", isPresented: Binding(
             get: { viewModel.state.errorMessage != nil },
@@ -68,5 +71,4 @@ struct AccountHistoryView: View {
         }
     }
 }
-
 

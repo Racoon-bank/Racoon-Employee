@@ -6,42 +6,38 @@
 //
 
 
-import Foundation
 import Combine
+import Foundation
+import AuthenticationServices
 
 @MainActor
 final class LoginViewModel: ObservableObject {
-    @Published var email: String = ""
-    @Published var password: String = ""
-
     @Published private(set) var state: AsyncViewState = .idle
 
-    private let login: EmployeeLoginUseCase
+    private let completeLogin: CompleteSSOLoginUseCase
+    private let ssoManager = SSOAuthManager()
     private unowned let appState: AppState
 
-    init(login: EmployeeLoginUseCase, appState: AppState) {
-        self.login = login
+    init(completeLogin: CompleteSSOLoginUseCase, appState: AppState) {
+        self.completeLogin = completeLogin
         self.appState = appState
     }
 
-    var canSubmit: Bool {
-        isValidEmail(email) && password.count >= 4 && !state.isLoading
-    }
-
     func submit() async {
-        guard canSubmit else { return }
+        guard !state.isLoading else { return }
         state = .loading
-        defer { if case .loading = state { state = .idle } }
 
         do {
-            try await login(
-                email: email.trimmingCharacters(in: .whitespacesAndNewlines),
-                password: password
-            )
+            let tokens = try await ssoManager.login()
+        
+            try await completeLogin(tokens: tokens)
+            
             state = .success
             appState.onLoggedIn()
+        } catch let error as ASWebAuthenticationSessionError where error.code == .canceledLogin {
+            state = .idle
         } catch {
-            state = .error(message: humanize(error))
+            state = .error(message: "SSO Login failed. Please try again.")
         }
     }
 
@@ -50,26 +46,71 @@ final class LoginViewModel: ObservableObject {
     }
 }
 
-// MARK: - Helpers
-private extension LoginViewModel {
-    func isValidEmail(_ s: String) -> Bool {
-        let t = s.trimmingCharacters(in: .whitespacesAndNewlines)
-        return t.contains("@") && t.contains(".") && t.count >= 5
-    }
+// MARK: - SSO Manager
+@MainActor
+final class SSOAuthManager: NSObject, ASWebAuthenticationPresentationContextProviding {
+    private var authSession: ASWebAuthenticationSession?
 
-    func humanize(_ error: Error) -> String {
-        if let e = error as? NetworkError {
-            switch e {
-            case .unauthorized:
-                return "Invalid credentials."
-            case .httpStatus(let code, _):
-                return "Server error (\(code)). Please try again."
-            case .decoding:
-                return "Unexpected server response."
-            default:
-                return "Login failed. Please try again."
+    func login() async throws -> AuthTokens {
+        return try await withCheckedThrowingContinuation { continuation in
+            let redirectURI = "myapp://callback"
+            let backendLoginURL = "https://info.hits-playground.ru/api/auth/login?redirectUrl=\(redirectURI)"
+            
+            guard let url = URL(string: backendLoginURL) else {
+                print("❌ SSO: Invalid backend URL")
+                continuation.resume(throwing: URLError(.badURL))
+                return
             }
+
+            print("🌐 SSO: Opening browser with URL: \(url)")
+
+            authSession = ASWebAuthenticationSession(url: url, callbackURLScheme: "myapp") { callbackURL, error in
+                if let error = error {
+                    continuation.resume(throwing: error)
+                    return
+                }
+
+                guard let callbackURL = callbackURL else {
+                    print("❌ SSO: No callback URL received.")
+                    continuation.resume(throwing: URLError(.badServerResponse))
+                    return
+                }
+
+                print("✅ SSO: Intercepted Redirect URL:\n\(callbackURL.absoluteString)")
+
+                guard let components = URLComponents(url: callbackURL, resolvingAgainstBaseURL: false) else {
+                    print("❌ SSO: Could not parse URL components.")
+                    continuation.resume(throwing: URLError(.badServerResponse))
+                    return
+                }
+                
+                print("🔍 SSO: Query Parameters found: \(components.queryItems?.map { "\($0.name)=\($0.value ?? "nil")" } ?? [])")
+
+                guard let queryItems = components.queryItems,
+                      let accessToken = queryItems.first(where: { $0.name == "access_token" })?.value,
+                      let refreshToken = queryItems.first(where: { $0.name == "refresh_token" })?.value else {
+                    
+                    print("❌ SSO: Failed to find access_token or refresh_token in the URL queries!")
+                    continuation.resume(throwing: URLError(.badServerResponse))
+                    return
+                }
+
+                print("🎉 SSO: Successfully extracted tokens!")
+                print("   -> Access Token (first 10 chars): \(accessToken.prefix(10))...")
+                print("   -> Refresh Token (first 10 chars): \(refreshToken.prefix(10))...")
+
+                continuation.resume(returning: AuthTokens(accessToken: accessToken, refreshToken: refreshToken))
+            }
+
+            authSession?.presentationContextProvider = self
+            authSession?.start()
         }
-        return "Login failed. Please try again."
+    }
+    func presentationAnchor(for session: ASWebAuthenticationSession) -> ASPresentationAnchor {
+        
+        return UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .flatMap { $0.windows }
+            .first { $0.isKeyWindow } ?? ASPresentationAnchor()
     }
 }

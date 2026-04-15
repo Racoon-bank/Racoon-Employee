@@ -21,24 +21,59 @@ final class AccountsAdminHomeViewModel: ObservableObject {
 
     private let getAllAccounts: GetAllAccountsUseCase
     private let getAllUsers: GetAllUsersUseCase
+    
+    private let connectBankHub: ConnectBankHubUseCase
+    private let subscribeToAccount: SubscribeToAccountUseCase
+    private let eventBus: DomainEventBus
 
-    init(getAllAccounts: GetAllAccountsUseCase, getAllUsers: GetAllUsersUseCase) {
+    init(
+        getAllAccounts: GetAllAccountsUseCase,
+        getAllUsers: GetAllUsersUseCase,
+        connectBankHub: ConnectBankHubUseCase,
+        subscribeToAccount: SubscribeToAccountUseCase,
+        eventBus: DomainEventBus
+    ) {
         self.getAllAccounts = getAllAccounts
         self.getAllUsers = getAllUsers
+        self.connectBankHub = connectBankHub
+        self.subscribeToAccount = subscribeToAccount
+        self.eventBus = eventBus
+        
+        listenForUpdates()
     }
 
+    // MARK: - Event Bus Listener
+
+    private func listenForUpdates() {
+        Task {
+            for await event in eventBus.events {
+                if case .accountUpdated(let updatedAccountId) = event {
+                    print("🔄 Admin AccountsList: Refreshing balances due to WS ping for \(updatedAccountId)!")
+                    
+                    do {
+                        try await silentRefresh()
+                    } catch {
+                        print("⚠️ Admin Failed to silently refresh accounts: \(error)")
+                    }
+                }
+            }
+        }
+    }
+
+    // MARK: - Load & Refresh
+
     func load() async {
+        guard accounts.isEmpty else {
+            await refresh()
+            return
+        }
+        
         state = .loading
         do {
-            async let accountsTask: [BankAccount] = getAllAccounts()
-            async let usersTask: [User] = getAllUsers()
-
-            let (accs, users) = try await (accountsTask, usersTask)
-
-            self.accounts = accs
-            self.usersById = Dictionary(uniqueKeysWithValues: users.map { ($0.id, $0) })
-
+            try await silentRefresh()
             state = .idle
+            
+            await setupRealTimeUpdates(for: accounts)
         } catch {
             state = .error(message: "Failed to load accounts.")
         }
@@ -46,17 +81,41 @@ final class AccountsAdminHomeViewModel: ObservableObject {
 
     func refresh() async {
         do {
-            async let accountsTask: [BankAccount] = getAllAccounts()
-            async let usersTask: [User] = getAllUsers()
-
-            let (accs, users) = try await (accountsTask, usersTask)
-
-            self.accounts = accs
-            self.usersById = Dictionary(uniqueKeysWithValues: users.map { ($0.id, $0) })
+            try await silentRefresh()
+            await setupRealTimeUpdates(for: accounts)
         } catch {
             state = .error(message: "Failed to refresh.")
         }
     }
+    
+    private func silentRefresh() async throws {
+        async let accountsTask: [BankAccount] = getAllAccounts()
+        async let usersTask: [User] = getAllUsers()
+
+        let (accs, users) = try await (accountsTask, usersTask)
+
+        withAnimation {
+            self.accounts = accs
+            self.usersById = Dictionary(uniqueKeysWithValues: users.map { ($0.id, $0) })
+        }
+    }
+
+    // MARK: - WebSockets Helper
+    
+    private func setupRealTimeUpdates(for accounts: [BankAccount]) async {
+        await connectBankHub()
+        
+        for account in accounts {
+            do {
+                try await subscribeToAccount(accountId: account.id)
+                print("✅ Admin Subscribed to updates for account: \(account.id)")
+            } catch {
+                print("⚠️ Admin Failed to subscribe to account \(account.id): \(error)")
+            }
+        }
+    }
+
+    // MARK: - Utilities
 
     func clearError() {
         if case .error = state { state = .idle }

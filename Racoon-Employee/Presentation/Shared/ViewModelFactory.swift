@@ -13,13 +13,13 @@ import Foundation
     private let container: AppContainer
      init(container: AppContainer) { self.container = container }
 
-     public func makeLoginViewModel(appState: AppState) -> LoginViewModel {
-         LoginViewModel(login: container.loginUseCase, appState: appState)
+     func makeLoginViewModel(appState: AppState) -> LoginViewModel {
+         LoginViewModel(completeLogin: container.completeSSOUseCase, appState: appState)
      }
 
     // MARK: - Admin
        func makeAccountsAdminHomeViewModel() -> AccountsAdminHomeViewModel {
-           AccountsAdminHomeViewModel(getAllAccounts: container.getAllAccountsUseCase, getAllUsers: container.getAllUsersUseCase)
+           AccountsAdminHomeViewModel(getAllAccounts: container.getAllAccountsUseCase, getAllUsers: container.getAllUsersUseCase, connectBankHub: container.connectBankHubUseCase, subscribeToAccount: container.subscribeToAccountUseCase, eventBus: container.eventBus)
      }
 
      func makeAccountHistoryViewModel(account: BankAccount) -> AccountHistoryViewModel {
@@ -27,11 +27,14 @@ import Foundation
              accountId: account.id,
              userId: account.userId,
              getHistory: container.getAccountHistoryUseCase,
-             getAllUsers: container.getAllUsersUseCase
+             getAllUsers: container.getAllUsersUseCase,
+             getAllAccounts: container.getAllAccountsUseCase,
+             connectBankHub: container.connectBankHubUseCase,
+             subscribeToAccount: container.subscribeToAccountUseCase, eventBus: container.eventBus
          )
      }
      public func makeCreditsAdminHomeViewModel() -> CreditsAdminHomeViewModel {
-         CreditsAdminHomeViewModel(getAllCredits: container.getAllCreditsUseCase)
+         CreditsAdminHomeViewModel(getAllCredits: container.getAllCreditsUseCase, getAllUsers: container.getAllUsersUseCase, repo: container.creditsRepository)
      }
 
       func makeCreditAdminDetailsViewModel(creditId: Int64) -> CreditAdminDetailsViewModel {
@@ -56,7 +59,9 @@ import Foundation
              getAllUsers: container.getAllUsersUseCase,
              createUser: container.createUserUseCase,
              createEmployee: container.createEmployeeUseCase,
-             banUser: container.banUserUseCase
+             banUser: container.banUserUseCase,
+             setTheme: container.setThemeUseCase,
+             appSettingsStorage: container.appSettingsStorage
          )
      }
 }

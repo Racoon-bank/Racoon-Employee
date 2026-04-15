@@ -22,6 +22,11 @@ public enum InfoRouter: APIRouter {
     case createEmployee(username: String, email: String?, password: String)
     case banUser(id: UUID)
 
+    case appInfo
+    case switchAppTheme
+    case hideBankAccount(id: UUID)
+    case revealBankAccount(id: UUID)
+    
     public var endpoint: Endpoint {
         switch self {
 
@@ -96,6 +101,18 @@ public enum InfoRouter: APIRouter {
                 method: .PUT,
                 path: "/api/user/\(id.uuidString)/ban"
             )
+        case .appInfo:
+            return Endpoint(service: .info, method: .GET, path: "/app/info")
+            
+        case .switchAppTheme:
+            return Endpoint(service: .info, method: .PUT, path: "/app/theme")
+            
+        case .hideBankAccount(let id):
+            return Endpoint(service: .info, method: .POST, path: "/app/bankAccount/\(id.uuidString.lowercased())")
+            
+        case .revealBankAccount(let id):
+            return Endpoint(service: .info, method: .DELETE, path: "/app/bankAccount/\(id.uuidString.lowercased())")
         }
+        
     }
 }

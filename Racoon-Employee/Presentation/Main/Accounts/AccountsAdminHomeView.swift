@@ -8,7 +8,6 @@
 
 import SwiftUI
 
-import SwiftUI
 
 struct AccountsAdminHomeView: View {
     @StateObject private var viewModel: AccountsAdminHomeViewModel
@@ -39,7 +38,7 @@ struct AccountsAdminHomeView: View {
         }
         .navigationTitle("Accounts")
         .searchable(text: $viewModel.searchText, prompt: "Account number or user name")
-        .task { await viewModel.load() }
+        .onAppear { Task { await viewModel.load() } }
         .refreshable { await viewModel.refresh() }
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
@@ -66,5 +65,6 @@ struct AccountsAdminHomeView: View {
         .padding(.vertical, 10)
     }
 }
+
 
 

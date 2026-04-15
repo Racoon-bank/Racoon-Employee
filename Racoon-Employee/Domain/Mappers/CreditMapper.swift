@@ -49,4 +49,34 @@ enum CreditMapper {
             createdAt: dto.createdAt
         )
     }
+   
+        static func toDomain(_ dto: CreditRatingDto) -> CreditRating {
+            CreditRating(
+                userId: UUID(uuidString: dto.userId) ?? UUID(),
+                score: dto.score,
+                ratingLevel: dto.ratingLevel ?? "Unknown",
+                totalCredits: dto.totalCredits ?? 0,
+                activeCredits: dto.activeCredits ?? 0,
+                currentOverduePayments: dto.currentOverduePayments ?? 0,
+                totalRemainingDebt: Decimal(dto.totalRemainingDebt ?? 0)
+            )
+        }
+
+        static func toDomain(_ dto: CreditApplicationDto) -> CreditApplication {
+            let status = CreditApplicationStatus(rawValue: dto.status ?? "") ?? .pending
+            let currency = Currency(rawValue: dto.currency ?? "RUB") ?? .RUB
+            
+            return CreditApplication(
+                id: dto.id,
+                ownerId: UUID(uuidString: dto.ownerId) ?? UUID(),
+                tariffName: dto.tariffName ?? "Unknown Tariff",
+                amount: Decimal(dto.amount),
+                currency: currency,
+                status: status,
+                durationMonths: dto.durationMonths ?? 0,
+                creditRatingScore: dto.creditRating,
+                employeeComment: dto.employeeComment
+            )
+        }
+    
 }

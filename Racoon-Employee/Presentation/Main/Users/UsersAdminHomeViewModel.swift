@@ -13,7 +13,6 @@ import Foundation
 
 @MainActor
 final class UsersAdminHomeViewModel: ObservableObject {
-   
 
     enum StatusFilter: String, CaseIterable, Identifiable {
         case all = "All"
@@ -31,22 +30,35 @@ final class UsersAdminHomeViewModel: ObservableObject {
 
     @Published var showCreateUserSheet = false
     @Published var showCreateEmployeeSheet = false
+    
+    // 🎨 Theme State
+    @Published var currentTheme: AppThemePreference = .light
 
     private let getAllUsers: GetAllUsersUseCase
     private let createUser: CreateUserUseCase
     private let createEmployee: CreateEmployeeUseCase
     private let banUser: BanUserUseCase
+    
+    // 🎨 Theme Use Cases
+    private let setTheme: SetThemeUseCase
+    private let appSettingsStorage: AppSettingsStorage
 
     init(
         getAllUsers: GetAllUsersUseCase,
         createUser: CreateUserUseCase,
         createEmployee: CreateEmployeeUseCase,
-        banUser: BanUserUseCase
+        banUser: BanUserUseCase,
+        setTheme: SetThemeUseCase,
+        appSettingsStorage: AppSettingsStorage
     ) {
         self.getAllUsers = getAllUsers
         self.createUser = createUser
         self.createEmployee = createEmployee
         self.banUser = banUser
+        self.setTheme = setTheme
+        self.appSettingsStorage = appSettingsStorage
+        
+        self.currentTheme = appSettingsStorage.load().theme
     }
 
     func load() async {
@@ -66,6 +78,22 @@ final class UsersAdminHomeViewModel: ObservableObject {
             state = .error(message: "Failed to refresh.")
         }
     }
+
+    // MARK: - Theme Toggle
+    
+    func toggleTheme(isDark: Bool) async {
+        let newTheme: AppThemePreference = isDark ? .dark : .light
+        self.currentTheme = newTheme
+        
+        do {
+            try await setTheme(newTheme)
+        } catch {
+            self.currentTheme = isDark ? .light : .dark
+            state = .error(message: "Failed to sync theme with server.")
+        }
+    }
+
+    // MARK: - User Management
 
     func createClient(username: String, email: String?, password: String) async {
         state = .loading
@@ -101,7 +129,7 @@ final class UsersAdminHomeViewModel: ObservableObject {
                     username: u.username,
                     email: u.email,
                     role: u.role,
-                    isBlocked: blocked,
+                    isBlocked: blocked
                 )
             }
             state = .idle
@@ -116,7 +144,6 @@ final class UsersAdminHomeViewModel: ObservableObject {
 
     var filteredUsers: [User] {
         var list = users
-
 
         switch statusFilter {
         case .all: break

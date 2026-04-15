@@ -117,7 +117,9 @@ public struct NetworkingAssembly: Sendable {
 
     public func makeAuthedHTTPClient(
         tokenStore: TokenStore,
-        tokenRefresher: any TokenRefresher
+        tokenRefresher: any TokenRefresher,
+        appErrorBus: AppErrorBus,
+        
     ) -> HTTPClient {
         let encoder = makeJSONEncoder()
         let decoder = makeJSONDecoder()
@@ -126,6 +128,7 @@ public struct NetworkingAssembly: Sendable {
         let authInterceptor = AuthInterceptor(
             tokenStore: tokenStore,
             refresher: tokenRefresher,
+            appErrorBus: appErrorBus,
             coordinator: RefreshCoordinator()
         )
 

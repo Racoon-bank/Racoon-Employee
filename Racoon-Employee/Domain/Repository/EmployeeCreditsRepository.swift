@@ -5,6 +5,7 @@
 //  Created by dark type on 01.03.2026.
 //
 
+import Foundation
 
 public protocol EmployeeCreditsRepository: Sendable {
     func allCredits() async throws -> [CreditDto]
@@ -12,4 +13,9 @@ public protocol EmployeeCreditsRepository: Sendable {
     func statistics(creditId: Int64) async throws -> CreditStatisticsDto
     func schedule(creditId: Int64) async throws -> [PaymentScheduleDto]
     func payments(creditId: Int64) async throws -> [CreditPaymentDto]
+    
+    func pendingApplications() async throws -> [CreditApplicationDto]
+    func approveApplication(id: Int64, comment: String?) async throws
+    func rejectApplication(id: Int64, comment: String?) async throws
+    func userRating(userId: UUID) async throws -> CreditRatingDto
 }

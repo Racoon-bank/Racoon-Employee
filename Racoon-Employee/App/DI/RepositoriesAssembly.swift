@@ -37,4 +37,5 @@ public struct RepositoriesAssembly: Sendable {
     public func makeEmployeeCreditsRepository(authedClient: HTTPClient) -> EmployeeCreditsRepository {
         EmployeeCreditsRepositoryLive(client: authedClient)
     }
+    
 }

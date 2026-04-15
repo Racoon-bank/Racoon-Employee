@@ -11,76 +11,50 @@ import SwiftUI
 struct LoginView: View {
     @StateObject private var viewModel: LoginViewModel
 
-    private enum Field: Hashable {
-        case email
-        case password
-    }
-
-    @FocusState private var focusedField: Field?
-
     init(viewModel: LoginViewModel) {
         _viewModel = StateObject(wrappedValue: viewModel)
     }
 
     var body: some View {
-        Form {
-            Section {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("Employee console")
-                        .font(.title2).bold()
-                    Text("Sign in to manage users, accounts, credits, and tariffs.")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                }
-                .padding(.vertical, 6)
-            }
+        VStack(spacing: 32) {
+            header
+            
+            submitButton
 
-            Section("Credentials") {
-                TextField("Email", text: $viewModel.email)
-                    .textContentType(.username)
-                    .keyboardType(.emailAddress)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-                    .submitLabel(.next)
-                    .focused($focusedField, equals: .email)
-                    .onSubmit { focusedField = .password }
-
-                SecureField("Password", text: $viewModel.password)
-                    .textContentType(.password)
-                    .textInputAutocapitalization(.never)
-                    .submitLabel(.go)
-                    .focused($focusedField, equals: .password)
-                    .onSubmit { Task { await viewModel.submit() } }
-            }
-
-            Section {
-                Button {
-                    Task { await viewModel.submit() }
-                } label: {
-                    HStack {
-                        Spacer()
-                        if viewModel.state.isLoading {
-                            ProgressView().controlSize(.small)
-                                .padding(.trailing, 6)
-                        }
-                        Text(viewModel.state.isLoading ? "Signing in…" : "Sign in")
-                            .font(.headline)
-                        Spacer()
-                    }
-                }
-                .disabled(!viewModel.canSubmit)
-            }
+            Spacer(minLength: 0)
         }
+        .padding(20)
         .navigationTitle("Sign in")
         .navigationBarTitleDisplayMode(.large)
-        .onAppear { focusedField = .email }
-        .alert("Error", isPresented: Binding(
-            get: { viewModel.state.errorMessage != nil },
-            set: { isPresented in if !isPresented { viewModel.clearError() } }
-        )) {
-            Button("OK", role: .cancel) { viewModel.clearError() }
-        } message: {
-            Text(viewModel.state.errorMessage ?? "")
+        .errorAlert(errorMessage: viewModel.state.errorMessage, clearError: { viewModel.clearError() })
+    }
+
+    private var header: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("Welcome")
+                .font(.title2).bold()
+            Text("Sign in using your organization's SSO.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var submitButton: some View {
+        Button {
+            Task { await viewModel.submit() }
+        } label: {
+            HStack {
+                if viewModel.state.isLoading {
+                    ProgressView().controlSize(.small)
+                        .padding(.trailing, 4)
+                }
+                Text(viewModel.state.isLoading ? "Opening browser..." : "Sign in with SSO")
+                    .font(.headline)
+            }
+            .frame(maxWidth: .infinity)
+        }
+        .buttonStyle(PrimaryButtonStyle(isEnabled: !viewModel.state.isLoading))
+        .disabled(viewModel.state.isLoading)
     }
 }

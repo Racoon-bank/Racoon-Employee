@@ -16,6 +16,7 @@ public struct UseCasesAssembly: Sendable {
     private let tariffsRepo: EmployeeTariffsRepository
     private let tokenStore: TokenStore
     private let events: DomainEventBus?
+    private let bankHubClient: BankHubClient
 
     public init(
         authRepo: EmployeeAuthRepository,
@@ -24,7 +25,8 @@ public struct UseCasesAssembly: Sendable {
         creditsRepo: EmployeeCreditsRepository,
         tariffsRepo: EmployeeTariffsRepository,
         tokenStore: TokenStore,
-        events: DomainEventBus? = nil
+        events: DomainEventBus? = nil,
+        bankHubClient: BankHubClient
     ) {
         self.authRepo = authRepo
         self.usersRepo = usersRepo
@@ -33,6 +35,7 @@ public struct UseCasesAssembly: Sendable {
         self.tariffsRepo = tariffsRepo
         self.tokenStore = tokenStore
         self.events = events
+        self.bankHubClient = bankHubClient
     }
 
     
@@ -103,4 +106,21 @@ public struct UseCasesAssembly: Sendable {
     public func makeDeleteTariffUseCase() -> DeleteTariffUseCase {
         DeleteTariffUseCaseImpl(repo: tariffsRepo, events: events)
     }
+    
+    public func makeConnectBankHubUseCase() -> ConnectBankHubUseCase {
+            ConnectBankHubUseCaseImpl(client: bankHubClient)
+        }
+
+        public func makeDisconnectBankHubUseCase() -> DisconnectBankHubUseCase {
+            DisconnectBankHubUseCaseImpl(client: bankHubClient)
+        }
+
+        public func makeSubscribeToAccountUseCase() -> SubscribeToAccountUseCase {
+            SubscribeToAccountUseCaseImpl(client: bankHubClient)
+        }
+
+        public func makeUnsubscribeFromAccountUseCase() -> UnsubscribeFromAccountUseCase {
+            UnsubscribeFromAccountUseCaseImpl(client: bankHubClient)
+        }
+    
 }
